@@ -1,0 +1,5 @@
+MDK-ARM/DebugConfig/
+MDK-ARM/RTE/
+MDK-ARM/startup_stm32f103xb.lst
+MDK-ARM/stm32f103_DualCDC/
+
