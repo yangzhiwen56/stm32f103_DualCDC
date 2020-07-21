@@ -116,6 +116,7 @@ static void PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  usb_printk("=>HAL_PCD_SetupStageCallback\r\n",30);
   USBD_LL_SetupStage((USBD_HandleTypeDef*)hpcd->pData, (uint8_t *)hpcd->Setup);
 }
 
@@ -131,6 +132,7 @@ static void PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  usb_printk("=>HAL_PCD_DataOutStageCallback\r\n", 32);
   USBD_LL_DataOutStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->OUT_ep[epnum].xfer_buff);
 }
 
@@ -146,6 +148,7 @@ static void PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  usb_printk("=>HAL_PCD_DataInStageCallback\r\n", 31);
   USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
 }
 
@@ -175,6 +178,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 { 
   USBD_SpeedTypeDef speed = USBD_SPEED_FULL;
+  usb_printk("=>HAL_PCD_ResetCallback\r\n", 25);
 
   if ( hpcd->Init.speed != PCD_SPEED_FULL)
   {
@@ -199,6 +203,7 @@ static void PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  usb_printk("=>HAL_PCD_SuspendCallback\r\n", 27);
   /* Inform USB library that core enters in suspend Mode. */
   USBD_LL_Suspend((USBD_HandleTypeDef*)hpcd->pData);
   /* Enter in STOP mode. */
@@ -223,6 +228,7 @@ static void PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  usb_printk("=>HAL_PCD_ResumeCallback\r\n", 26);
   /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */

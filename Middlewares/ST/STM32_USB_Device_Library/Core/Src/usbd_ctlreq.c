@@ -119,40 +119,49 @@ static uint8_t USBD_GetLen(uint8_t *buf);
 USBD_StatusTypeDef  USBD_StdDevReq (USBD_HandleTypeDef *pdev , USBD_SetupReqTypedef  *req)
 {
   USBD_StatusTypeDef ret = USBD_OK;  
+  usb_printk("=>USBD_StdDevReq\r\n", 18);
   
   switch (req->bRequest) 
   {
   case USB_REQ_GET_DESCRIPTOR: 
     
+    //usb_printk("->USBD_GetDescriptor\r\n", 22);
     USBD_GetDescriptor (pdev, req) ;
     break;
     
   case USB_REQ_SET_ADDRESS:                      
+    //usb_printk("->USBD_SetAddress\r\n", 19);
     USBD_SetAddress(pdev, req);
     break;
     
   case USB_REQ_SET_CONFIGURATION:                    
+    //usb_printk("->USBD_SetConfig\r\n", 18);
     USBD_SetConfig (pdev , req);
     break;
     
   case USB_REQ_GET_CONFIGURATION:                 
+    //usb_printk("->USBD_GetConfig\r\n", 18);
     USBD_GetConfig (pdev , req);
     break;
     
   case USB_REQ_GET_STATUS:                                  
+    //usb_printk("->USBD_GetStatus\r\n", 18);
     USBD_GetStatus (pdev , req);
     break;
     
     
   case USB_REQ_SET_FEATURE:   
+    //usb_printk("->USBD_SetFeature\r\n", 19);
     USBD_SetFeature (pdev , req);    
     break;
     
   case USB_REQ_CLEAR_FEATURE:                                   
+    //usb_printk("->USBD_ClrFeature\r\n", 19);
     USBD_ClrFeature (pdev , req);
     break;
     
   default:  
+    usb_printk("->USBD_CtlError\r\n", 17);
     USBD_CtlError(pdev , req);
     break;
   }
@@ -170,6 +179,8 @@ USBD_StatusTypeDef  USBD_StdDevReq (USBD_HandleTypeDef *pdev , USBD_SetupReqType
 USBD_StatusTypeDef  USBD_StdItfReq (USBD_HandleTypeDef *pdev , USBD_SetupReqTypedef  *req)
 {
   USBD_StatusTypeDef ret = USBD_OK; 
+  usb_printk("=>USBD_StdItfReq[inter=", 23);
+  usb_printf("%d]\r\n", LOBYTE(req->wIndex));
   
   switch (pdev->dev_state) 
   {
@@ -211,6 +222,8 @@ USBD_StatusTypeDef  USBD_StdEPReq (USBD_HandleTypeDef *pdev , USBD_SetupReqTyped
   USBD_StatusTypeDef ret = USBD_OK; 
   USBD_EndpointTypeDef   *pep;
   ep_addr  = LOBYTE(req->wIndex);   
+  usb_printk("=>USBD_StdEPReq[ep=", 17);
+  usb_printf("%d]\r\n", ep_addr);
   
   /* Check if it is a class request */
   if ((req->bmRequest & 0x60) == 0x20)
@@ -333,6 +346,7 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
 {
   uint16_t len;
   uint8_t *pbuf;
+  usb_printk("=>USBD_GetDescriptor\r\n",22);
   
     
   switch (req->wValue >> 8)
@@ -343,17 +357,20 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
     break;
 #endif    
   case USB_DESC_TYPE_DEVICE:
+    usb_printk("->GetDeviceDescriptor\r\n", 23);
     pbuf = pdev->pDesc->GetDeviceDescriptor(pdev->dev_speed, &len);
     break;
     
   case USB_DESC_TYPE_CONFIGURATION:     
     if(pdev->dev_speed == USBD_SPEED_HIGH )   
     {
+      usb_printk("->GetHSConfigDescriptor\r\n", 25);
       pbuf   = (uint8_t *)pdev->pClass->GetHSConfigDescriptor(&len);
       pbuf[1] = USB_DESC_TYPE_CONFIGURATION;
     }
     else
     {
+      usb_printk("->GetFSConfigDescriptor\r\n" ,25);
       pbuf   = (uint8_t *)pdev->pClass->GetFSConfigDescriptor(&len);
       pbuf[1] = USB_DESC_TYPE_CONFIGURATION;
     }
@@ -363,34 +380,42 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
     switch ((uint8_t)(req->wValue))
     {
     case USBD_IDX_LANGID_STR:
+     usb_printk("->GetLangIDStrDescriptor\r\n", 26);
      pbuf = pdev->pDesc->GetLangIDStrDescriptor(pdev->dev_speed, &len);        
       break;
       
     case USBD_IDX_MFC_STR:
+      usb_printk("->GetManufacturerStrDescriptor\r\n", 32);
       pbuf = pdev->pDesc->GetManufacturerStrDescriptor(pdev->dev_speed, &len);
       break;
       
     case USBD_IDX_PRODUCT_STR:
+      usb_printk("->GetProductStrDescriptor\r\n", 27);
       pbuf = pdev->pDesc->GetProductStrDescriptor(pdev->dev_speed, &len);
       break;
       
     case USBD_IDX_SERIAL_STR:
+      usb_printk("->GetSerialStrDescriptor\r\n", 26);
       pbuf = pdev->pDesc->GetSerialStrDescriptor(pdev->dev_speed, &len);
       break;
       
     case USBD_IDX_CONFIG_STR:
+      usb_printk("->GetConfigurationStrDescriptor\r\n", 33);
       pbuf = pdev->pDesc->GetConfigurationStrDescriptor(pdev->dev_speed, &len);
       break;
       
     case USBD_IDX_INTERFACE_STR:
+      usb_printk("->GetInterfaceStrDescriptor\r\n", 29);
       pbuf = pdev->pDesc->GetInterfaceStrDescriptor(pdev->dev_speed, &len);
       break;
       
     default:
 #if (USBD_SUPPORT_USER_STRING == 1)
+      usb_printk("->GetUsrStrDescriptor\r\n", 23);
       pbuf = pdev->pClass->GetUsrStrDescriptor(pdev, (req->wValue) , &len);
       break;
 #else      
+       usb_printk("->USBD_CtlError\r\n", 17);
        USBD_CtlError(pdev , req);
       return;
 #endif   
@@ -400,11 +425,13 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
 
     if(pdev->dev_speed == USBD_SPEED_HIGH  )   
     {
+      usb_printk("->GetDeviceQualifierDescriptor\r\n", 32);
       pbuf   = (uint8_t *)pdev->pClass->GetDeviceQualifierDescriptor(&len);
       break;
     }
     else
     {
+      usb_printk("->USBD_CtlError\r\n", 17);
       USBD_CtlError(pdev , req);
       return;
     } 
@@ -412,17 +439,20 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev ,
   case USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION:
     if(pdev->dev_speed == USBD_SPEED_HIGH  )   
     {
+      usb_printk("->GetOtherSpeedConfigDescriptor\r\n", 33);
       pbuf   = (uint8_t *)pdev->pClass->GetOtherSpeedConfigDescriptor(&len);
       pbuf[1] = USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION;
       break; 
     }
     else
     {
+      usb_printk("->USBD_CtlError\r\n", 17);
       USBD_CtlError(pdev , req);
       return;
     }
 
   default: 
+     usb_printk("->USBD_CtlError\r\n", 17);
      USBD_CtlError(pdev , req);
     return;
   }
@@ -450,6 +480,8 @@ static void USBD_SetAddress(USBD_HandleTypeDef *pdev ,
                             USBD_SetupReqTypedef *req)
 {
   uint8_t  dev_addr; 
+  usb_printk("=>USBD_SetAddress[addr=", 23);
+  usb_printf("%x]\r\n", (uint8_t)(req->wValue) & 0x7F);
   
   if ((req->wIndex == 0) && (req->wLength == 0)) 
   {
@@ -493,6 +525,7 @@ static void USBD_SetConfig(USBD_HandleTypeDef *pdev ,
 {
   
   static uint8_t  cfgidx;
+  usb_printk("=>USBD_SetConfig\r\n", 18);
   
   cfgidx = (uint8_t)(req->wValue);                 
   
@@ -569,6 +602,7 @@ static void USBD_GetConfig(USBD_HandleTypeDef *pdev ,
                            USBD_SetupReqTypedef *req)
 {
 
+  usb_printk("=>USBD_GetConfig\r\n", 18);
   if (req->wLength != 1) 
   {                   
      USBD_CtlError(pdev , req);
@@ -610,6 +644,7 @@ static void USBD_GetStatus(USBD_HandleTypeDef *pdev ,
 {
   
     
+  usb_printk("=>USBD_GetStatus\r\n", 18);
   switch (pdev->dev_state) 
   {
   case USBD_STATE_ADDRESSED:
@@ -649,6 +684,7 @@ static void USBD_SetFeature(USBD_HandleTypeDef *pdev ,
                             USBD_SetupReqTypedef *req)
 {
 
+  usb_printk("=>USBD_SetFeature\r\n", 19);
   if (req->wValue == USB_FEATURE_REMOTE_WAKEUP)
   {
     pdev->dev_remote_wakeup = 1;  
@@ -669,6 +705,7 @@ static void USBD_SetFeature(USBD_HandleTypeDef *pdev ,
 static void USBD_ClrFeature(USBD_HandleTypeDef *pdev , 
                             USBD_SetupReqTypedef *req)
 {
+  usb_printk("=>USBD_ClrFeature\r\n", 19);
   switch (pdev->dev_state)
   {
   case USBD_STATE_ADDRESSED:

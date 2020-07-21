@@ -114,6 +114,19 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
+USBD_CDC_LineCodingTypeDef usb_line_coding={
+  115200, /* Baud rate        : 115200 */
+  0,      /* Stop bits        : 1      */
+  0,      /* Parity           : None   */
+  8       /* Number Data bits : 8      */
+};
+
+#define USB_BUFF_SIZE 1024
+struct usb_fifo_t{
+  unsigned char buff[USB_BUFF_SIZE];
+  volatile unsigned short fi,fo;
+};
+struct usb_fifo_t usb_fifo;
 
 /* USER CODE END EXPORTED_VARIABLES */
 
@@ -154,10 +167,12 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
   */
 static int8_t CDC_Init_FS(void)
 {
+  usb_printk("=>CDC_Init_FS\r\n",15);
   /* USER CODE BEGIN 3 */
   /* Set Application Buffers */
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+  usb_fifo.fi = usb_fifo.fo = 0;
   return (USBD_OK);
   /* USER CODE END 3 */
 }
@@ -168,6 +183,7 @@ static int8_t CDC_Init_FS(void)
   */
 static int8_t CDC_DeInit_FS(void)
 {
+  usb_printk("=>CDC_DeInit_FS\r\n",17);
   /* USER CODE BEGIN 4 */
   return (USBD_OK);
   /* USER CODE END 4 */
@@ -183,25 +199,33 @@ static int8_t CDC_DeInit_FS(void)
 static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
   /* USER CODE BEGIN 5 */
+  USBD_CDC_LineCodingTypeDef *line_coding;
+  usb_printk("=>CDC_Control_FS[cmd=",21);
+  usb_printf("%x]\r\n", cmd);
   switch(cmd)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
+    usb_printk("->CDC_SEND_ENCAPSULATED_COMMAND\r\n",33);
 
     break;
 
     case CDC_GET_ENCAPSULATED_RESPONSE:
+    usb_printk("->CDC_GET_ENCAPSULATED_RESPONSE\r\n",33);
 
     break;
 
     case CDC_SET_COMM_FEATURE:
+    usb_printk("->CDC_SET_COMM_FEATURE\r\n",24);
 
     break;
 
     case CDC_GET_COMM_FEATURE:
+    usb_printk("->CDC_GET_COMM_FEATURE\r\n",24);
 
     break;
 
     case CDC_CLEAR_COMM_FEATURE:
+    usb_printk("->CDC_CLEAR_COMM_FEATURE\r\n",26);
 
     break;
 
@@ -223,18 +247,37 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
   /*******************************************************************************/
     case CDC_SET_LINE_CODING:
+    usb_printk("->CDC_SET_LINE_CODING\r\n",23);
+    line_coding = (USBD_CDC_LineCodingTypeDef *)pbuf;
 
+    usb_line_coding.bitrate    = line_coding->bitrate;
+    usb_line_coding.format     = line_coding->format;
+    usb_line_coding.paritytype = line_coding->paritytype;
+    usb_line_coding.datatype   = line_coding->datatype;
     break;
 
     case CDC_GET_LINE_CODING:
+    usb_printk("->CDC_GET_LINE_CODING\r\n",23);
+    line_coding = &usb_line_coding;
+    pbuf[0] = (uint8_t)(line_coding->bitrate);
+    pbuf[1] = (uint8_t)(line_coding->bitrate >> 8);
+    pbuf[2] = (uint8_t)(line_coding->bitrate >> 16);
+    pbuf[3] = (uint8_t)(line_coding->bitrate >> 24);
+    pbuf[4] = line_coding->format;
+    pbuf[5] = line_coding->paritytype;
+    pbuf[6] = line_coding->datatype;
 
     break;
 
     case CDC_SET_CONTROL_LINE_STATE:
+    usb_printk("->CDC_SET_CONTROL_LINE_STATE\r\n",30);
+//    usb_printf("%x %x %x %x %x %x %x\r\n", pbuf[0], pbuf[1], pbuf[2], pbuf[3]
+//                                         , pbuf[4], pbuf[5], pbuf[6]);
 
     break;
 
     case CDC_SEND_BREAK:
+    usb_printk("->CDC_SEND_BREAK\r\n",18);
 
     break;
 
@@ -262,7 +305,18 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
+  usb_printk("=>CDC_Receive_FS\r\n",18);
   /* USER CODE BEGIN 6 */
+
+  if(usb_fifo.fi + *Len <= USB_BUFF_SIZE){
+    memcpy(&usb_fifo.buff[usb_fifo.fi], Buf, *Len);
+  } else{
+    unsigned short l = USB_BUFF_SIZE-usb_fifo.fi;
+    memcpy(&usb_fifo.buff[usb_fifo.fi], Buf, l);
+    memcpy(&usb_fifo.buff[0], &Buf[l], *Len-l);
+  }
+  usb_fifo.fi = (usb_fifo.fi+*Len) % USB_BUFF_SIZE;
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
@@ -283,6 +337,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
+  usb_printk("=>CDC_Transmit_FS\r\n",19);
   /* USER CODE BEGIN 7 */
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
   if (hcdc->TxState != 0){
@@ -295,6 +350,39 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+int UsbDevRecvAvailableDataLen(void)
+{
+  int len = (usb_fifo.fi + USB_BUFF_SIZE - usb_fifo.fo) % USB_BUFF_SIZE;
+  return len;
+}
+
+int UsbDevRecvs(unsigned char *buf, unsigned short want_len)
+{
+  int len;
+  int fifo_len;
+
+  fifo_len = (usb_fifo.fi + USB_BUFF_SIZE - usb_fifo.fo) % USB_BUFF_SIZE;
+  len = (fifo_len>=want_len) ? want_len : fifo_len;
+  if(len<=0)
+    return 0;
+
+  if(len>0){
+    if(usb_fifo.fo+len <= USB_BUFF_SIZE){
+      memcpy(buf, &usb_fifo.buff[usb_fifo.fo], len);
+    } else{
+      unsigned short l = USB_BUFF_SIZE-usb_fifo.fo;
+      memcpy(buf, &usb_fifo.buff[usb_fifo.fo], l);
+      memcpy(&buf[l], &usb_fifo.buff[0], l);
+    }
+    usb_fifo.fo = (usb_fifo.fo+len) % USB_BUFF_SIZE;
+  }
+  return len;
+}
+
+int UsbDevSends(unsigned char *buf, int len)
+{
+  return CDC_Transmit_FS(buf,len);
+}
 
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 

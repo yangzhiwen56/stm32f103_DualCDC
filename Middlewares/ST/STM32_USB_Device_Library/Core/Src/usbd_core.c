@@ -264,6 +264,12 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 {
 
   USBD_ParseSetupRequest(&pdev->request, psetup);
+  usb_printk("=>USBD_LL_SetupStage[",21);
+  usb_printf("%x %x %x %x" , pdev->request.bmRequest
+                           , pdev->request.bRequest
+                           , pdev->request.wValue
+                           , pdev->request.wIndex);
+  usb_printk("][ep0_state->SETUP]\r\n",21);
   
   pdev->ep0_state = USBD_EP0_SETUP;
   pdev->ep0_data_len = pdev->request.wLength;
@@ -271,18 +277,22 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
   switch (pdev->request.bmRequest & 0x1F) 
   {
   case USB_REQ_RECIPIENT_DEVICE:   
+    //usb_printk("->USBD_StdDevReq\r\n", 18);
     USBD_StdDevReq (pdev, &pdev->request);
     break;
     
   case USB_REQ_RECIPIENT_INTERFACE:     
+    //usb_printk("->USBD_StdItfReq\r\n", 18);
     USBD_StdItfReq(pdev, &pdev->request);
     break;
     
   case USB_REQ_RECIPIENT_ENDPOINT:        
+    //usb_printk("->USBD_StdEPReq\r\n", 17);
     USBD_StdEPReq(pdev, &pdev->request);   
     break;
     
   default:           
+    usb_printk("->USBD_LL_StallEP\r\n", 19);
     USBD_LL_StallEP(pdev , pdev->request.bmRequest & 0x80);
     break;
   }  
@@ -299,6 +309,7 @@ USBD_StatusTypeDef USBD_LL_SetupStage(USBD_HandleTypeDef *pdev, uint8_t *psetup)
 USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum, uint8_t *pdata)
 {
   USBD_EndpointTypeDef    *pep;
+  usb_printk("=>USBD_LL_DataOutStage\r\n", 24);
   
   if(epnum == 0) 
   {
@@ -343,6 +354,7 @@ USBD_StatusTypeDef USBD_LL_DataOutStage(USBD_HandleTypeDef *pdev , uint8_t epnum
 USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev ,uint8_t epnum, uint8_t *pdata)
 {
   USBD_EndpointTypeDef    *pep;
+  usb_printk("=>USBD_LL_DataInStage\r\n", 23);
     
   if(epnum == 0) 
   {

@@ -349,6 +349,14 @@ void HAL_GetUID(uint32_t *UID);
   * @}
   */
 /* Private macros ------------------------------------------------------------*/
+#define USB_DEBUG
+#ifdef USB_DEBUG
+extern void usb_printk(char *str, int len);
+extern void usb_printf(const char *fmt, ...);
+#else
+#define usb_printk(str, len)
+#define usb_printf(fmt, ...)
+#endif
 /* Private functions ---------------------------------------------------------*/
 /**
   * @}

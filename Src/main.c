@@ -21,14 +21,27 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
+#include <stdarg.h>
+#include <stdlib.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+int UsbDevRecvAvailableDataLen(void);
+int UsbDevRecvs(unsigned char *buf, unsigned short want_len);
+int UsbDevSends(unsigned char *buf, int len);
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+#define UART_BUFF_LEN 10240
+struct uart_fifo
+{
+  unsigned short fin,fout;
+  unsigned char data[UART_BUFF_LEN];
+};
+struct uart_fifo uart0_fifo;
 
 /* USER CODE END PTD */
 
@@ -66,6 +79,7 @@ static void MX_USART1_UART_Init(void);
   * @brief  The application entry point.
   * @retval int
   */
+uint32_t len,tickstart;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -94,14 +108,36 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
+  uart0_fifo.fin = uart0_fifo.fout = 0;
+  usb_printf("Hello Elmo[%s %s].\r\n", __DATE__, __TIME__);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  tickstart = HAL_GetTick();
   while (1)
   {
     /* USER CODE END WHILE */
 
+    if(uart0_fifo.fin != uart0_fifo.fout){
+      if(__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TXE)){
+        unsigned char ch = uart0_fifo.data[uart0_fifo.fout];
+        huart1.Instance->DR = ch;
+        if(++uart0_fifo.fout >= UART_BUFF_LEN){
+          uart0_fifo.fout=0;
+        }
+      }
+    }
+
+    len = UsbDevRecvAvailableDataLen();
+    if(len>16 || ((len>0) &&((HAL_GetTick() - tickstart)>10))){
+      uint8_t buf[128];
+      len = (len>128) ? 128 : len;
+      UsbDevRecvs(buf,len);
+      UsbDevSends(buf,len);
+      tickstart = HAL_GetTick();
+    }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -199,6 +235,163 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+unsigned char *pbuf_start = &uart0_fifo.data[0];
+unsigned char *pbuf_end = &uart0_fifo.data[UART_BUFF_LEN];
+void usb_printf(const char *fmt, ...)
+{
+#if 1
+  va_list list;
+  unsigned char *pbuf;
+
+  va_start(list, fmt);
+  pbuf = &uart0_fifo.data[uart0_fifo.fin];
+
+  while(*fmt){
+    if('%' != *fmt){
+      *pbuf++ = *fmt++;
+      if(pbuf == pbuf_end) pbuf = pbuf_start;
+      continue;
+    }
+
+    ++fmt;
+    switch(*fmt){
+      case 's':{
+        const char *str = va_arg(list, const char *);
+        for(; *str!='\0'; str++){
+          *pbuf++ = *str;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+        }
+        ++fmt;
+        break;
+      }
+      case 'd':{
+        char zero = 0;
+        unsigned int div=1000000000;
+        unsigned int value = (unsigned int)va_arg(list, const int);
+        while(div){
+          unsigned int val = value / div;
+          if(val != 0){
+            zero = 1;
+            value -= val * div;
+            *pbuf++ = val + '0';
+            if(pbuf == pbuf_end) pbuf = pbuf_start;
+          } else if(zero==1){
+            *pbuf++ = '0';
+            if(pbuf == pbuf_end) pbuf = pbuf_start;
+          }
+          div /= 10;
+        }
+        if(zero==0){
+          *pbuf++ = '0';
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+        }
+        ++fmt;
+        break;
+      }
+      case 'x':{
+        char zero = 0;
+        int ulValue = va_arg(list, const int);
+        unsigned char val;
+
+        *pbuf++ = '0';
+        if(pbuf == pbuf_end) pbuf = pbuf_start;
+        *pbuf++ = 'x';
+        if(pbuf == pbuf_end) pbuf = pbuf_start;
+
+        if(ulValue & 0xff000000){
+          val = ((ulValue >> 28) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+
+          val = ((ulValue >> 24) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+          zero = 1;
+        }
+        if((ulValue & 0xff0000) || (zero==1)){
+          val = ((ulValue >> 20) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+
+          val = ((ulValue >> 16) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+          zero = 1;
+        }
+        if((ulValue & 0xff00) || (zero==1)){
+          val = ((ulValue >> 12) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+
+          val = ((ulValue >> 8) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+          zero = 1;
+        }
+        if((ulValue & 0xff) || (zero==1)){
+          val = ((ulValue >> 4) & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+
+          val = (ulValue & 0xf);
+          val += (val>9) ? 'W' : '0';
+          *pbuf++ = val;
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+          zero = 1;
+        }
+
+        if(zero==0){
+          *pbuf++ = '0';
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+          *pbuf++ = '0';
+          if(pbuf == pbuf_end) pbuf = pbuf_start;
+        }
+        ++fmt;
+        break;
+      }
+      default :{
+        break;
+      }
+    }  //end switch
+  } //end while
+  uart0_fifo.fin = pbuf - pbuf_start;
+#endif
+}
+
+void usb_printk(char *fmt, int len)
+{
+  if(uart0_fifo.fin+len <= UART_BUFF_LEN){
+    memcpy(&uart0_fifo.data[uart0_fifo.fin], fmt, len);
+  } else{
+    unsigned short l = UART_BUFF_LEN-uart0_fifo.fin;
+    memcpy(&uart0_fifo.data[uart0_fifo.fin], fmt, l);
+    memcpy(&uart0_fifo.data[0], &fmt[l], len-l);
+  }
+  uart0_fifo.fin = (uart0_fifo.fin+len) % UART_BUFF_LEN;
+}
+void usb_printk_data(char *buff, int len)
+{
+  int i;
+  unsigned short fin = uart0_fifo.fin;
+
+  for(i=0; i<len; i++){
+    uart0_fifo.data[fin++] = (buff[i]>>8)+'0';
+    if(fin>UART_BUFF_LEN) fin = 0;
+    uart0_fifo.data[fin++] = (buff[i]&0x0f)+'0';
+    if(fin>UART_BUFF_LEN) fin = 0;
+    uart0_fifo.data[fin++] = 0x20;
+    if(fin>UART_BUFF_LEN) fin = 0;
+  }
+  uart0_fifo.fin = fin;
+}
 
 /* USER CODE END 4 */
 

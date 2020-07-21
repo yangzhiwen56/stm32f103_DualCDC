@@ -96,6 +96,9 @@ USBD_StatusTypeDef  USBD_CtlSendData (USBD_HandleTypeDef  *pdev,
                                uint8_t *pbuf,
                                uint16_t len)
 {
+  usb_printk("=>USBD_CtlSendData[len=", 23);
+  usb_printf("%d",len);
+  usb_printk("][->DATA_IN]\r\n", 14);
   /* Set EP0 State */
   pdev->ep0_state          = USBD_EP0_DATA_IN;                                      
   pdev->ep_in[0].total_length = len;
@@ -118,6 +121,8 @@ USBD_StatusTypeDef  USBD_CtlContinueSendData (USBD_HandleTypeDef  *pdev,
                                        uint8_t *pbuf,
                                        uint16_t len)
 {
+ usb_printk("=>USBD_CtlContinueSendData[len=", 31);
+ usb_printf("%d]\r\n",len);
  /* Start the next transfer */
   USBD_LL_Transmit (pdev, 0x00, pbuf, len);   
   
@@ -136,6 +141,9 @@ USBD_StatusTypeDef  USBD_CtlPrepareRx (USBD_HandleTypeDef  *pdev,
                                   uint8_t *pbuf,                                  
                                   uint16_t len)
 {
+  usb_printk("=>USBD_CtlPrepareRx[len=", 24);
+  usb_printf("%d", len);
+  usb_printk("][->DATA_OUT]\r\n", 15);
   /* Set EP0 State */
   pdev->ep0_state = USBD_EP0_DATA_OUT; 
   pdev->ep_out[0].total_length = len;
@@ -162,6 +170,8 @@ USBD_StatusTypeDef  USBD_CtlContinueRx (USBD_HandleTypeDef  *pdev,
                                           uint16_t len)
 {
 
+  usb_printk("=>USBD_CtlContinueRx[len=", 25);
+  usb_printf("%d\r\n",len);
   USBD_LL_PrepareReceive (pdev,
                           0,                     
                           pbuf,                         
@@ -177,6 +187,7 @@ USBD_StatusTypeDef  USBD_CtlContinueRx (USBD_HandleTypeDef  *pdev,
 USBD_StatusTypeDef  USBD_CtlSendStatus (USBD_HandleTypeDef  *pdev)
 {
 
+  usb_printk("=>USBD_CtlSendStatus[->STATUS_IN]\r\n", 35);
   /* Set EP0 State */
   pdev->ep0_state = USBD_EP0_STATUS_IN;
   
@@ -194,6 +205,7 @@ USBD_StatusTypeDef  USBD_CtlSendStatus (USBD_HandleTypeDef  *pdev)
 */
 USBD_StatusTypeDef  USBD_CtlReceiveStatus (USBD_HandleTypeDef  *pdev)
 {
+  usb_printk("=>USBD_CtlReceiveStatus[->STATUS_OUT]\r\n", 39);
   /* Set EP0 State */
   pdev->ep0_state = USBD_EP0_STATUS_OUT; 
   

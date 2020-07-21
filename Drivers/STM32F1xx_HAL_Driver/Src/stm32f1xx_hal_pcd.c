@@ -570,6 +570,8 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 { 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_CTR))
   {
+    //usb_printk("\r\n=>USB_ISTR_CTR\r\n", 18); //can not do this
+    usb_printk("\r\n=>\r\n", 6);
     /* servicing of the endpoint correct transfer interrupt */
     /* clear of the CTR flag into the sub */
     PCD_EP_ISR_Handler(hpcd);
@@ -577,6 +579,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_RESET))
   {
+    usb_printk("\r\n=>USB_ISTR_RESET\r\n", 20);
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_RESET);
     HAL_PCD_ResetCallback(hpcd);
     HAL_PCD_SetAddress(hpcd, 0U);
@@ -584,15 +587,18 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_PMAOVR))
   {
+    usb_printk("\r\n=>USB_ISTR_PMAOVR\r\n",21);
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_PMAOVR);    
   }
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_ERR))
   {
+    usb_printk("\r\n=>USB_ISTR_ERR\r\n",18);
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_ERR); 
   }
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_WKUP))
   {
+    usb_printk("\r\n=>USB_ISTR_WKUP\r\n",19);
     hpcd->Instance->CNTR &= ~(USB_CNTR_LP_MODE);
     hpcd->Instance->CNTR &= ~(USB_CNTR_FSUSP);
     
@@ -603,6 +609,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_SUSP))
   { 
+    usb_printk("\r\n=>USB_ISTR_SUSP\r\n", 19);
     /* Force low-power mode in the macrocell */
     hpcd->Instance->CNTR |= USB_CNTR_FSUSP;
     
@@ -618,12 +625,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_SOF))
   {
+    //usb_printk("\r\n=>USB_ISTR_SOF\r\n", 18);
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_SOF); 
     HAL_PCD_SOFCallback(hpcd);
   }
 
   if (__HAL_PCD_GET_FLAG (hpcd, USB_ISTR_ESOF))
   {
+    //usb_printk("\r\n=>USB_ISTR_ESOF\r\n", 19);
     /* clear ESOF flag in ISTR */
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_ESOF); 
   }
@@ -1207,6 +1216,7 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
   uint8_t epindex = 0;
   __IO uint16_t wIstr = 0;  
   __IO uint16_t wEPVal = 0;
+  //usb_printk("=>PCD_EP_ISR_Handler\r\n", 22); // can not do this
   
   /* stay in loop while pending interrupts */
   while (((wIstr = hpcd->Instance->ISTR) & USB_ISTR_CTR) != 0)
@@ -1219,7 +1229,7 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
       /* Decode and service control endpoint interrupt */
       
       /* DIR bit = origin of the interrupt */   
-      if ((wIstr & USB_ISTR_DIR) == 0)
+      if ((wIstr & USB_ISTR_DIR) == 0)  /* Direction of transaction */
       {
         /* DIR = 0 */
         
@@ -1232,6 +1242,7 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
         ep->xfer_buff += ep->xfer_count;
  
         /* TX COMPLETE */
+        //usb_printk("->HAL_PCD_DataInStageCallback:ep0\r\n", 35);
         HAL_PCD_DataInStageCallback(hpcd, 0U);
         
         
@@ -1260,6 +1271,7 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
           PCD_CLEAR_RX_EP_CTR(hpcd->Instance, PCD_ENDP0); 
           
           /* Process SETUP Packet*/
+          //usb_printk("->HAL_PCD_SetupStageCallback:ep0\r\n", 34);
           HAL_PCD_SetupStageCallback(hpcd);
         }
         
@@ -1276,6 +1288,7 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
           }
           
           /* Process Control Data OUT Packet*/
+           //usb_printk("->HAL_PCD_DataOutStageCallback:ep0\r\n",36);
            HAL_PCD_DataOutStageCallback(hpcd, 0U);
           
           PCD_SET_EP_RX_CNT(hpcd->Instance, PCD_ENDP0, ep->maxpacket);
@@ -1333,10 +1346,14 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
         if ((ep->xfer_len == 0U) || (count < ep->maxpacket))
         {
           /* RX COMPLETE */
+          usb_printk("->HAL_PCD_DataOutStageCallback:ep",33);
+          usb_printf("%d\r\n", ep->num);
           HAL_PCD_DataOutStageCallback(hpcd, ep->num);
         }
         else
         {
+          usb_printk("->HAL_PCD_EP_Receive:ep",23);
+          usb_printf("%d\r\n", ep->num);
           HAL_PCD_EP_Receive(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
         }
         
@@ -1388,10 +1405,14 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
         if (ep->xfer_len == 0U)
         {
           /* TX COMPLETE */
+          usb_printk("->HAL_PCD_DataInStageCallback:ep", 32);
+          usb_printf("%d\r\n",ep->num);
           HAL_PCD_DataInStageCallback(hpcd, ep->num);
         }
         else
         {
+          usb_printk("->HAL_PCD_EP_Transmit:ep", 24);
+          usb_printf("%d\r\n",ep->num);
           HAL_PCD_EP_Transmit(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
         }
       } 

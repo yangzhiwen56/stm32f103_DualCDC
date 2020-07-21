@@ -477,6 +477,8 @@ static uint8_t  USBD_CDC_Init (USBD_HandleTypeDef *pdev,
 {
   uint8_t ret = 0;
   USBD_CDC_HandleTypeDef   *hcdc;
+  usb_printk("=>USBD_CDC_Init[cfgidx=",23);
+  usb_printf("%d]\r\n",cfgidx);
   
   if(pdev->dev_speed == USBD_SPEED_HIGH  ) 
   {  
@@ -564,6 +566,8 @@ static uint8_t  USBD_CDC_DeInit (USBD_HandleTypeDef *pdev,
                                  uint8_t cfgidx)
 {
   uint8_t ret = 0;
+  usb_printk("=>USBD_CDC_DeInit[cfgidx=",25);
+  usb_printf("%d]\r\n",cfgidx);
   
   /* Open EP IN */
   USBD_LL_CloseEP(pdev,
@@ -601,10 +605,18 @@ static uint8_t  USBD_CDC_Setup (USBD_HandleTypeDef *pdev,
 {
   USBD_CDC_HandleTypeDef   *hcdc = (USBD_CDC_HandleTypeDef*) pdev->pClassData;
   static uint8_t ifalt = 0;
+  usb_printk("=>USBD_CDC_Setup\r\n",18);
     
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
   case USB_REQ_TYPE_CLASS :
+    usb_printk("->USB_REQ_TYPE_CLASS[Len=",25);
+    usb_printf("%d",req->wLength);
+    if(req->bmRequest & 0x80){
+      usb_printk(",in]\r\n",6);
+    } else{
+      usb_printk(",out]\r\n",7);
+    }
     if (req->wLength)
     {
       if (req->bmRequest & 0x80)
@@ -636,6 +648,7 @@ static uint8_t  USBD_CDC_Setup (USBD_HandleTypeDef *pdev,
     break;
 
   case USB_REQ_TYPE_STANDARD:
+    usb_printk("->USB_REQ_TYPE_STANDARD\r\n",25);
     switch (req->bRequest)
     {      
     case USB_REQ_GET_INTERFACE :
@@ -664,6 +677,7 @@ static uint8_t  USBD_CDC_Setup (USBD_HandleTypeDef *pdev,
 static uint8_t  USBD_CDC_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   USBD_CDC_HandleTypeDef   *hcdc = (USBD_CDC_HandleTypeDef*) pdev->pClassData;
+  usb_printk("=>USBD_CDC_DataIn\r\n",19);
   
   if(pdev->pClassData != NULL)
   {
@@ -688,6 +702,7 @@ static uint8_t  USBD_CDC_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum)
 static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
 {      
   USBD_CDC_HandleTypeDef   *hcdc = (USBD_CDC_HandleTypeDef*) pdev->pClassData;
+  usb_printk("=>USBD_CDC_DataOut\r\n",20);
   
   /* Get the received data length */
   hcdc->RxLength = USBD_LL_GetRxDataSize (pdev, epnum);
@@ -718,6 +733,7 @@ static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
 static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev)
 { 
   USBD_CDC_HandleTypeDef   *hcdc = (USBD_CDC_HandleTypeDef*) pdev->pClassData;
+  usb_printk("=>USBD_CDC_EP0_RxReady\r\n",24);
   
   if((pdev->pUserData != NULL) && (hcdc->CmdOpCode != 0xFF))
   {
@@ -739,6 +755,7 @@ static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev)
   */
 static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
 {
+  usb_printk("=>USBD_CDC_GetFSCfgDesc\r\n",25);
   *length = sizeof (USBD_CDC_CfgFSDesc);
   return USBD_CDC_CfgFSDesc;
 }
@@ -752,6 +769,7 @@ static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
   */
 static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
 {
+  usb_printk("=>USBD_CDC_GetHSCfgDesc\r\n",25);
   *length = sizeof (USBD_CDC_CfgHSDesc);
   return USBD_CDC_CfgHSDesc;
 }
@@ -765,6 +783,7 @@ static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
   */
 static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
 {
+  usb_printk("=>USBD_CDC_GetOtherSpeedCfgDesc\r\n",33);
   *length = sizeof (USBD_CDC_OtherSpeedCfgDesc);
   return USBD_CDC_OtherSpeedCfgDesc;
 }
@@ -777,6 +796,7 @@ static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
 */
 uint8_t  *USBD_CDC_GetDeviceQualifierDescriptor (uint16_t *length)
 {
+  usb_printk("=>USBD_CDC_GetDeviceQualifierDescriptor\r\n",41);
   *length = sizeof (USBD_CDC_DeviceQualifierDesc);
   return USBD_CDC_DeviceQualifierDesc;
 }
