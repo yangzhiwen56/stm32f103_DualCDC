@@ -27,9 +27,15 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#ifndef USB_FS_DUAL_COM
 int UsbDevRecvAvailableDataLen(void);
 int UsbDevRecvs(unsigned char *buf, unsigned short want_len);
 int UsbDevSends(unsigned char *buf, int len);
+#else
+int UsbDevRecvAvailableDataLen(uint32_t idx);
+int UsbDevRecvs(uint32_t idx, unsigned char *buf, unsigned short want_len);
+int UsbDevSends(uint32_t idx, unsigned char *buf, int len);
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,7 +135,8 @@ int main(void)
         }
       }
     }
-
+#if 1
+#ifndef USB_FS_DUAL_COM
     len = UsbDevRecvAvailableDataLen();
     if(len>16 || ((len>0) &&((HAL_GetTick() - tickstart)>10))){
       uint8_t buf[128];
@@ -138,6 +145,27 @@ int main(void)
       UsbDevSends(buf,len);
       tickstart = HAL_GetTick();
     }
+#else
+    len = UsbDevRecvAvailableDataLen(0);
+    if(len>16 || ((len>0) &&((HAL_GetTick() - tickstart)>10))){
+      uint8_t buf[128];
+      len = (len>128) ? 128 : len;
+      UsbDevRecvs(0,buf,len);
+      UsbDevSends(0,buf,len);
+      tickstart = HAL_GetTick();
+    }
+
+    len = UsbDevRecvAvailableDataLen(1);
+    if(len>16 || ((len>0) &&((HAL_GetTick() - tickstart)>10))){
+      uint8_t buf[128];
+      len = (len>128) ? 128 : len;
+      UsbDevRecvs(1,buf,len);
+      UsbDevSends(1,buf,len);
+      tickstart = HAL_GetTick();
+    }
+
+#endif
+#endif
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

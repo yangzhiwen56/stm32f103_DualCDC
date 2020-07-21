@@ -103,7 +103,11 @@ extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
   * @{
   */
 
+#ifndef USB_FS_DUAL_COM
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
+#else
+uint8_t CDC_Transmit_FS(uint32_t idx, uint8_t* Buf, uint16_t Len);
+#endif
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 

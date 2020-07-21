@@ -63,7 +63,11 @@
   */
 
 /*---------- -----------*/
+#ifndef USB_FS_DUAL_COM
 #define USBD_MAX_NUM_INTERFACES     1
+#else
+#define USBD_MAX_NUM_INTERFACES     2
+#endif
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1
 /*---------- -----------*/
